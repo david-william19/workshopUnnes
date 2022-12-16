@@ -1,0 +1,79 @@
+<main class="main">
+  <div class="phone-card">
+    <div class="top-section">
+      <div class="container-header">
+        <div class="title-{{status}}" id="title-container">
+          <h1 class="text-pretty">pretty</h1>
+          <span class="text-smartlighting">Smart Lighting</span>
+        </div>
+        <button type="button" id="switch" data-status={{status}}
+          data-temperature={{Temp}} class="switch-button">
+          <img src="/images/power.svg" width="24" height="24" alt="power-icon" />
+          <span class="icon-on text-switch" id="icon-on">{{status}}</span>
+        </button>
+      </div>
+      <div class="image-lamp">
+        <img id="img-lamp" src="/images/lamp_{{status}}.svg" height="143" width="244" alt="Lamp Image On"/>
+      </div>
+    </div>
+    <div class="bottom-section">
+      <div class="header-log"> <span>Temperature</span> <h1 id="temperature">{{Temp}}°</h1> </div>
+    </div>
+  </div>
+</main>
+
+<script type="text/javascript">
+    const button = document.getElementById('switch'); 
+    const onClick = () => {
+            let status = (button.getAttribute('data-status') === "nyala") ? "mati" : "nyala"
+            let body = { data: status, type:"downlink" }
+            fetch(`/postData`, {
+                method: "POST", 
+                headers: {
+                    'Content-Type': 'application/json',
+                }, 
+                body: JSON.stringify(body)
+            }).then(data => {
+                const btn =document.getElementById("switch")
+            window.location.reload()
+               //btn.setAttribute("data-status", status)
+
+                console.log(data)
+            })
+        }
+    button.addEventListener("click", onClick);
+</script>
+
+<script src="https://cdn.socket.io/4.4.0/socket.io.min.js"></script>
+   
+<script type="text/javascript">
+    var socket = io({ query: 'dashboard=antares' });
+        const updateContent = (status, temperature) => {
+            document.getElementById('switch').setAttribute('data-status', status)
+            document.getElementById("icon-on").innerHTML = status
+            document.getElementById("img-lamp").src = `/images/lamp_${status}.svg`;
+            document.getElementById("title-container").className = `title-${status}`
+            document.getElementById("temperature").innerHTML = `${temperature}°`
+        }
+        console.log(socket)
+        socket.on('packet', function (data) {
+            console.log("DATA >>", data)
+            if (data.topic) {
+                const dataCin = data['m2m:rsp'].pc['m2m:cin']
+                const dataCon = JSON.parse(dataCin.con)
+                let status
+                let temperature
+                if (dataCon.type === "downlink") {
+                    status = dataCon.data
+                    temperature = document.getElementById('switch').getAttribute('data-temperature')
+                    updateContent(status, temperature)
+                } else {
+                    status = document.getElementById('switch').getAttribute('data-status')
+                    temperature = dataCon.data.Temp
+                    updateContent(status, temperature)
+                }
+            }
+        })  
+</script>
+
+
